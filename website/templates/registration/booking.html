@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desk Booking System - Book Desk</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Book a Desk</h1>
+        <!-- Add a form for booking using your own data -->
+        <form action="/booking/submit" method="post">
+            <!-- Include CSRF token for security -->
+            {% csrf_token %}
+            <label for="name">Your Name:</label>
+            <input type="text" name="name" id="name" class="form-control" required>
+            <label for="date">Date:</label>
+            <input type="date" name="date" id="date" class="form-control" required>
+            <button type="submit" class="btn btn-primary mt-3">Book Desk</button>
+        </form>
+    </div>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-Lz9p1GOMLlqD1eBDtkSjFfJUpUtxc4S8/KJE8v5RKgoAjoCC/9bDdqq1C2eL2
