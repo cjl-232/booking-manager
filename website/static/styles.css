@@ -1,0 +1,30 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+}
+
+header {
+    background-color: #333;
+    color: #fff;
+    padding: 10px;
+}
+
+nav a {
+    color: #fff;
+    margin-right: 10px;
+    text-decoration: none;
+}
+
+.content {
+    display: flex;
+}
+
+.sidebar {
+    width: 20%;
+}
+
+.image-container {
+    width: 80%;
+    position: relative;
+}

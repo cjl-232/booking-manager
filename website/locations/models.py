@@ -17,6 +17,7 @@ class Floor(models.Model):
         on_delete = models.CASCADE,
     )
     name = models.CharField(max_length = 254)
+    plan = models.ImageField(upload_to = 'floor_plans')
     
     def __str__(self):
         return self.name
