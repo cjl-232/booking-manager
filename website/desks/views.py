@@ -15,8 +15,14 @@ def get_desks(request, floor_id):
     query = Desk.objects.filter(floor_id = floor_id)
     return JsonResponse({'desks': list(query.values())})
     
-def get_desk_bookings(request):
-    pass
+def get_bookings(request, desk_id, start_datetime, end_datetime):
+    query = Booking.objects.filter(
+        desk_id = desk_id,
+        end_time__gt = datetime.fromisoformat(start_datetime),
+        start_time__lt = datetime.fromisoformat(end_datetime),
+    )
+    print(datetime.fromisoformat(start_datetime), " ", datetime.fromisoformat(end_datetime));
+    return JsonResponse({'bookings': list(query.values())})
 
 def get_available_desks(request):
 

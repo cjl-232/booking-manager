@@ -140,5 +140,6 @@ LOGIN_REDIRECT_URL = "/"
 
 AUTH_USER_MODEL = 'accounts.User'
 
-MEDIA_URL = '/images/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'images')
+MEDIA_URL = '/media/'
+MEDIA_DIR = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

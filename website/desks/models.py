@@ -12,6 +12,14 @@ class Desk(models.Model):
     )
     name = models.CharField(max_length = 254, unique = True)
     height_adjustable = models.BooleanField(default = False)
+    x_position = models.PositiveSmallIntegerField(default = 0)
+    y_position = models.PositiveSmallIntegerField(default = 0)
+    width = models.PositiveSmallIntegerField(default = 0)
+    height = models.PositiveSmallIntegerField(default = 0)
+    angle = models.PositiveSmallIntegerField(default = 0)
+    
+    def __str__(self):
+        return self.name;
     
     class Meta:
         db_table = 'desks_desks'

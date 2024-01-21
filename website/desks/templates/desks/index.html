@@ -1,4 +1,4 @@
-<!-- next step: work out dynamic (and usable) radio button generation -->
+<!-- datetime feeding done, but now need to completely review how async stuff is done! Learn it carefully -->
 
 <!DOCTYPE html>
 <html>
@@ -10,7 +10,6 @@
     {% load compress %}
     <link rel="stylesheet" href="{% static 'jquery.datetimepicker.css' %}"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.3.4/dist/css/datepicker-bs5.min.css" integrity="sha384-Vn0xiUc12vxlhJvgdGKbK8mGesCKN5jyO+2jqsBW7B+VBOpI+mBb9psuN4eQ1qAT" crossorigin="anonymous">
     <link href="{% static 'stylesheet.css' %}" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanillajs-datepicker@1.3.4/dist/js/datepicker-full.js" integrity="sha384-BBTxy78shItxVf6Hz4VlUqO0A+B1lgtfSgFCwrn3Xb95oVD5LNI1qrqMceSZ+w+7" crossorigin="anonymous"></script>
@@ -19,20 +18,9 @@
     <script src="{% static 'jquery.datetimepicker.full.js' %}"></script>
   </head>
   <body>
-  <input type="radio" class="btn-check" name="options" id="option1" autocomplete="off" checked>
-<label class="btn btn-secondary" for="option1">Checked</label>
-
-<input type="radio" class="btn-check" name="options" id="option2" autocomplete="off">
-<label class="btn btn-secondary" for="option2">Radio</label>
-
-<input type="radio" class="btn-check" name="options" id="option3" autocomplete="off" disabled>
-<label class="btn btn-secondary" for="option3">Disabled</label>
-
-<input type="radio" class="btn-check" name="options" id="option4" autocomplete="off">
-<label class="btn btn-secondary" for="option4">Radio</label>
     <div class="container">
       <div class="row">
-        <div class="col-4">
+        <div class="col" style="min-width: 340px; max-width: 340px;">
           <form>
             <div class="form-group">
               <div for="site_selection" class="form-label">Select location:</div>
@@ -58,11 +46,11 @@
             </div>
           </form>
         </div>
-        <div class="col-8">
+        <div class="col">
           <form>
             <div class="form-group">
               <div id="date_range" for="canvas" class="form-label"></div>
-              <canvas id="canvas" height="150" width="300"></canvas>
+              <canvas id="canvas" height="600" width="1200"></canvas>
             </div>
             <div id="floor_buttons" class="btn-group btn-group-toggle">  
               
@@ -71,10 +59,6 @@
         </div>
        </div>
     </div>
-    
-    <script>
-      alert(JSON.parse(document.getElementById('test_script').textContent));
-    </script>
   
     <!-- Date/time picker initialisation: -->
     <script>
@@ -171,85 +155,196 @@
     <!-- Canvas and floor button group code: -->
     {% compress js %}
     <script>
-    
+   
+      //Have an async for loading the background that has to be awaited.
+   
+      //May need to reconsider this approach. Asynchronous events are...
+      //well, asynchronous.
+      
+      //
+      
+      //What needs to happen is:
+      //Load and draw the floor image
+      //Only AFTER this: iterate through each desk, draw rectangles, note down
+      //the coordinates of active desks in one promise.all thing
+      //iterate through that and set up clickable areas accordingly
+      
+      //NEED TO ENSURE IMAGE STRETCHING IS APPLIED TO BOX POSITIONS
+      //MULTIPLY BY CANVAS SIZE, DIVIDE BY IMAGE SIZE?
+      
+      
       const canvas = document.getElementById('canvas');
-      const context = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d');
+      const site_selection = document.getElementById('site_selection');
       const floor_buttons = document.getElementById('floor_buttons');
       const plan_image = document.createElement('img');
-      
-      function refreshCanvas(floor) {
-      
-        //Clear the canvas and apply the background image:
-        plan_image.src = floor.plan;
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(canvas_backdrop, 0, 0);
+      let width_ratio = 1.0;
+      let height_ratio = 1.0;
+
+      async function updatePlanImage(url) {
         
-        //Retrieve desk information:
-        const url = "{% url 'get_desks' %}" + "/" + floor.id + "1";
-        console.log(url);
-        return;
-        const response = fetch(
+        plan_image.src = '{% get_media_prefix %}' + url;
+        width_ratio = canvas.width / plan_image.naturalWidth;
+        height_ratio = canvas.height / plan_image.naturalHeight;
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(plan_image, 0, 0, canvas.width, canvas.height);
+      };
+      
+      function loadDesks(floor_id) {
+      
+        //Define a function to check if a desk object meets desired criteria:
+        function deskMeetsCriteria(desk) {
+          return true;
+        };
+        
+        //Define a function to draw a desk given a desk object and colour:
+        function drawDesk(desk, colour) {
+          ctx.translate(
+              width_ratio * (desk.x_position + desk.width / 2), 
+              height_ratio * (desk.y_position + desk.height / 2),
+            );
+            ctx.rotate(desk.angle * Math.PI / 180);
+            ctx.fillStyle = colour;
+            ctx.fillRect(
+              -width_ratio * desk.width / 2,
+              -height_ratio * desk.height / 2, 
+              width_ratio * desk.width,
+              height_ratio * desk.height,
+            );
+            ctx.strokeRect(
+              -width_ratio * desk.width / 2,
+              -height_ratio * desk.height / 2, 
+              width_ratio * desk.width,
+              height_ratio * desk.height,
+            );
+            ctx.fillStyle = "black";
+            ctx.fillText(desk.name, 0, 0);
+            ctx.restore();
+        };
+        const start_datetime = $('#start_datetime').datetimepicker('getValue');
+        const end_datetime = $('#end_datetime').datetimepicker('getValue');
+        const url = "{% url 'index' %}" + "api/desks/" + floor_id;
+        fetch(
           url,
           {
-              method: "GET",
-              headers: {
-                "X-Requested-With": "XMLHttpRequest",
-              },
-          });
-          console.log(response);
-      };
-      refreshCanvas({'id': 1, 'canvas_backdrop': "floor_plans/friends.jpg"});
-      
-      function createButtons(floors) {
-      
-        floor_buttons.replaceChildren();
-        for (var i = 0; i < floors.length; i++) {
-        
-          var btn = document.createElement('input');
-          btn.type = 'radio';
-          btn.name = 'floor_buttons';
-          btn.id = 'floor_button' + i;
-          btn.value = floors[i].plan;
-          if (i == 0) {
-            btn.checked = true;
-            btn.classList.add('checked');
-          };
-          btn.addEventListener('click', function(e) {
-            for (var sibling of this.parentNode.children) {
-              sibling.classList.remove('checked');
+            method: "GET", 
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+          },
+        )
+        .then(response => response.json())
+        .then(data => {
+          //Set up the context to draw with desired aesthetics:
+          ctx.strokeStyle = "black";
+          ctx.font = "24px arial";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.save();
+          
+          //Iterate over retrieved desks and draw each:
+          for (const desk of data.desks) {
+            if (deskMeetsCriteria(desk)) {
+              let url = "{% url 'index' %}" + "api/bookings/" + desk.id;
+              url += "/" + start_datetime.toISOString();
+              url += "/" + end_datetime.toISOString();
+              fetch(
+                url,
+                {
+                    method: "GET", 
+                    headers: { "X-Requested-With": "XMLHttpRequest" },
+                }
+              )
+              .then(response => {
+                return response.json();
+              })
+              .then(data => {
+                if (data.bookings.length == 0) {
+                  drawDesk(desk, 'green');
+                } else {
+                  drawDesk(desk, 'red');
+                };
+              });
+            } else {
+              drawDesk(desk, "grey");
             };
-            this.classList.add('checked');
-          });
-        };
+          }
+        })
       };
+
+      async function refreshCanvas(e) {
+
+        //Retrieve the relevant plan image url and render it:
+        console.log(document.querySelector("input[name='floor_buttons']:checked"));
+        await updatePlanImage(
+          document.querySelector('input[name="floor_buttons"]:checked').value
+        );
+        
+        //Retrieve the id of the selected floor:
+        const floor_id = document.querySelector(
+          'input[name="floor_buttons"]:checked'
+        ).id.substring(13);
+        
+        //Load desk items from the specified floor:
+        loadDesks(floor_id);
+      }
+
+      function loadFloorButtons(e) {
+        const site_id = site_selection.value;
+        const url = "{% url 'index' %}" + "api/floors/" + site_id;
+        fetch(
+          url,
+          {
+              method: "GET", 
+              headers: { "X-Requested-With": "XMLHttpRequest" },
+          },
+        )
+        .then(response => response.json())
+        .then(data => {
+          floor_buttons.replaceChildren();
+          for (let i = 0; i < data.floors.length; i++) {
+            let btn = document.createElement('input');
+            btn.type = 'radio';
+            btn.name = 'floor_buttons';
+            btn.id = 'floor_button_' + data.floors[i].id;
+            btn.value = data.floors[i].plan;
+            if (i == 0) {
+              btn.checked = true;
+              btn.classList.add('checked');
+            };
+            btn.addEventListener('click', function(e) {
+              for (var sibling of this.parentNode.children) {
+                sibling.classList.remove('checked');
+              };
+              this.classList.add('checked');
+              refreshCanvas(e);
+            });
+            console.log(btn);
+            floor_buttons.appendChild(btn);
+          };
+        });
+      };
+      
+      jQuery(function(){
+        site_selection.addEventListener('change', loadFloorButtons);
+      });
+      
+      jQuery(function(){
+        
+        loadFloorButtons();
+        console.log("debug2");
+        console.log(floor_buttons);
+        
+      });
+      
+      jQuery(function(){
+        
+        refreshCanvas();
+        
+      });
   
     </script>
     {% endcompress %}
-    <script type="module">
-      import { createButtons } from "{% static 'desks/floor_load_functions.js' %}";
-      jQuery(function(){
-      
-        function getSitePlans(e) {
-          const site_id = this.value;
-          const url = "{% url 'get_plans' %}" + "?site=" + site_id;
-          const query = fetch(
-            url,
-            {
-              method: "GET",
-              headers: {
-                "X-Requested-With": "XMLHttpRequest",
-              },
-            })
-            .then(response => response.json())
-            .then(data => createButtons(
-              data.plans, 
-              document.getElementById('floor_buttons'),
-              document.getElementById('canvas'))
-            )
-          };
-        $('#site_selection').on('load change', getSitePlans);
-      });
-    </script>
+
     
     <!-- Floor button group code: -->
     
